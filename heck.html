@@ -1,0 +1,228 @@
+<!doctype html>
+
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>haryl — Terminal Hub</title>
+  <meta name="description" content="Hacker-style landing page milik haryl — demo satu file." />
+  <style>
+    /* Basic reset */
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      background:#000; color:#0f0; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', monospace;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+      overflow:hidden;
+    }/* Matrix rain background */
+canvas#matrix{position:fixed; inset:0; width:100%; height:100%; z-index:0;}
+
+/* Center panel */
+.wrap{position:relative; z-index:2; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px}
+.panel{
+  width:980px; max-width:96%; background:linear-gradient(180deg, rgba(0,0,0,0.6), rgba(0,0,0,0.5)); border:1px solid rgba(0,255,0,0.08);
+  border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.02);
+  overflow:hidden; display:flex; flex-direction:column;
+}
+
+/* Header */
+.head{display:flex; align-items:center; gap:12px; padding:18px 20px; border-bottom:1px solid rgba(0,255,0,0.04)}
+.leds{display:flex; gap:6px}
+.led{width:10px;height:10px;border-radius:50%; background:rgba(255,255,255,0.06); box-shadow:0 0 6px rgba(0,255,0,0.06) inset}
+.led.red{background:#ff5f56}
+.led.yellow{background:#ffbd2e}
+.led.green{background:#27c93f}
+.title{flex:1; color:#9fff9f; font-weight:700}
+.subtle{color:#6fb86f; font-size:13px; opacity:.9}
+
+/* Terminal area */
+.term{padding:18px 20px; display:flex; gap:18px}
+.left{flex:1; min-width:380px}
+.right{width:320px; border-left:1px dashed rgba(0,255,0,0.06); padding-left:18px}
+
+.screen{background:linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0.3)); border-radius:8px; padding:14px; min-height:300px; color:#b6f3b6; font-size:14px; line-height:1.45; overflow:auto}
+
+.prompt{color:#80ff80}
+.typing{color:#eaffea; font-weight:700}
+
+/* Buttons */
+.controls{display:flex; gap:8px; margin-top:12px}
+.btn{background:transparent; border:1px solid rgba(0,255,0,0.08); color:#b6f3b6; padding:8px 10px; border-radius:8px; cursor:pointer; font-weight:600}
+.btn:hover{background:rgba(0,255,0,0.02)}
+
+/* Right side widgets */
+.card{background:rgba(0,0,0,0.45); border:1px solid rgba(0,255,0,0.03); padding:12px; border-radius:8px; margin-bottom:12px}
+.owner{font-size:22px; font-weight:800; color:#d2ffd2; text-align:center}
+.owner small{display:block; font-size:12px; color:#9fbf9f; margin-top:6px}
+
+label{display:block; font-size:12px; color:#9fbf9f; margin-bottom:8px}
+input[type=text], input[type=password]{width:100%; padding:8px 10px; background:rgba(0,0,0,0.6); border:1px solid rgba(0,255,0,0.06); border-radius:6px; color:#d8ffd8}
+
+.note{font-size:12px; color:#8fbf8f}
+
+footer{padding:12px 18px; border-top:1px solid rgba(0,255,0,0.02); display:flex; justify-content:space-between; align-items:center}
+footer .small{color:#7fbf7f; font-size:13px}
+
+/* small screens */
+@media (max-width:880px){
+  .term{flex-direction:column}
+  .right{width:100%; border-left:none; padding-left:0}
+}
+
+/* caret animation for typing effect */
+.caret{display:inline-block; width:10px; height:18px; background:#b6f3b6; margin-left:6px; vertical-align:bottom; animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+
+  </style>
+</head>
+<body>
+  <canvas id="matrix"></canvas>
+  <div class="wrap">
+    <div class="panel" role="main">
+      <div class="head">
+        <div class="leds"><span class="led red"></span><span class="led yellow"></span><span class="led green"></span></div>
+        <div class="title">haryl — Terminal Hub</div>
+        <div class="subtle">status: online</div>
+      </div><div class="term">
+    <div class="left">
+      <div class="screen" id="console">
+        <div><span class="prompt">~ $</span> <span class="typing" id="typed">Initializing security daemon</span><span class="caret"></span></div>
+        <div style="height:8px"></div>
+        <div id="log"></div>
+      </div>
+
+      <div class="controls">
+        <button class="btn" id="runBtn">Run scan</button>
+        <button class="btn" id="clearBtn">Clear</button>
+        <button class="btn" id="exportBtn">Export log</button>
+      </div>
+    </div>
+
+    <aside class="right">
+      <div class="card owner">
+        haryl
+        <small>creator &amp; operator</small>
+      </div>
+
+      <div class="card">
+        <label for="alias">Alias</label>
+        <input id="alias" type="text" placeholder="masukkan alias..." />
+        <p class="note">Alias akan muncul di log ketika melakukan simulasi.</p>
+      </div>
+
+      <div class="card">
+        <label for="key">Access Key</label>
+        <input id="key" type="password" placeholder="••••••••" />
+        <p class="note">Ini hanya untuk tampilan — tidak disimpan di server.</p>
+      </div>
+    </aside>
+  </div>
+
+  <footer>
+    <div class="small">© <strong>haryl</strong> — demo UI</div>
+    <div class="small">engine: client-only</div>
+  </footer>
+</div>
+
+  </div>  <script>
+    // ===== Matrix rain effect =====
+    const canvas = document.getElementById('matrix');
+    const ctx = canvas.getContext('2d');
+    let width, height, columns, drops;
+    function resize(){
+      width = canvas.width = innerWidth;
+      height = canvas.height = innerHeight;
+      const fontSize = 14;
+      columns = Math.floor(width / fontSize);
+      drops = new Array(columns).fill(0);
+      ctx.font = fontSize + 'px monospace';
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    const chars = '01█▉▊▋▌▍▎▏▒▓░<>/\\{}[]()@#$%&*+-=~';
+    function draw(){
+      ctx.fillStyle = 'rgba(0,0,0,0.06)';
+      ctx.fillRect(0,0,width,height);
+      ctx.fillStyle = '#003300';
+      for(let i=0;i<drops.length;i++){
+        const text = chars.charAt(Math.floor(Math.random()*chars.length));
+        const x = i * 14;
+        const y = drops[i] * 14;
+        ctx.fillText(text, x, y);
+        if(y > height && Math.random() > 0.975) drops[i] = 0;
+        drops[i]++;
+      }
+      requestAnimationFrame(draw);
+    }
+    requestAnimationFrame(draw);
+
+    // ===== Console simulation =====
+    const logEl = document.getElementById('log');
+    const typed = document.getElementById('typed');
+    const runBtn = document.getElementById('runBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const exportBtn = document.getElementById('exportBtn');
+
+    function appendLine(text, cls){
+      const el = document.createElement('div');
+      if(cls) el.className = cls;
+      el.textContent = text;
+      logEl.appendChild(el);
+      // scroll the screen
+      const screen = document.getElementById('console');
+      screen.scrollTop = screen.scrollHeight;
+    }
+
+    // small intro
+    appendLine('['+new Date().toLocaleString()+'] daemon started.');
+    appendLine('loading modules: crypto, net, fs, ai...');
+
+    function simulateScan(){
+      const alias = document.getElementById('alias').value || 'anonymous';
+      const steps = [
+        `~ initiating scan (operator: ${alias})`,
+        'probing network interfaces...',
+        'discovering hosts [ 9 found ]',
+        'enumerating services: ssh, http, db',
+        'attempting handshake...',
+        'exfiltration simulation: queued',
+        'scan complete. 3 potential vectors found.'
+      ];
+      let i = 0;
+      typed.textContent = 'running scan';
+      const id = setInterval(()=>{
+        if(i>=steps.length){
+          clearInterval(id);
+          typed.textContent = 'idle';
+          appendLine(`[${new Date().toLocaleTimeString()}] scan finished.`);
+          return;
+        }
+        appendLine(`[${new Date().toLocaleTimeString()}] ${steps[i]}`);
+        i++;
+      }, 700);
+    }
+
+    runBtn.addEventListener('click', ()=>{
+      simulateScan();
+    });
+
+    clearBtn.addEventListener('click', ()=>{ logEl.innerHTML=''; appendLine('['+new Date().toLocaleString()+'] log cleared.') });
+
+    exportBtn.addEventListener('click', ()=>{
+      const rows = Array.from(logEl.children).map(el=>el.textContent).join('\n');
+      const blob = new Blob([rows], {type:'text/plain'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'haryl-log.txt'; a.click(); a.remove();
+    });
+
+    // tiny auto status change to show life
+    setTimeout(()=>{ typed.textContent = 'idle'; }, 2200);
+
+    // prevent accidental selection & allow keyboard to trigger run with Enter
+    document.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter'){
+        simulateScan();
+      }
+    });
+  </script></body>
+</html>
